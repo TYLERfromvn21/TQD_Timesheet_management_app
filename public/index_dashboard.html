@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #b22222;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header .logo {
+            width: 40px;
+            height: 40px;
+            background-color: white;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .header .tabs {
+            display: flex;
+            gap: 20px;
+        }
+        .header .tabs a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .header .tabs .active {
+            text-decoration: underline;
+        }
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header .user-info img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #fff;
+        }
+        .content {
+            padding: 20px;
+            max-height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .employee-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .employee-info .left {
+            flex: 1;
+        }
+        .employee-info .right {
+            flex: 1;
+            text-align: right;
+        }
+        .employee-info div {
+            margin: 5px 0;
+        }
+        .timesheet-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            height: 60vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .timesheet {
+            position: relative;
+            height: 1200px; /* Enough for 24 hours, assuming 50px per hour */
+        }
+        .timesheet .date-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px; /* Increased margin to avoid overlap */
+        }
+        .timesheet .date-nav-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .timesheet .date-nav-left button {
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .timesheet .date-nav-right {
+            display: flex;
+            gap: 10px;
+        }
+        .timesheet .date-nav-right button {
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .timesheet .date-nav-right button.active {
+            background-color: #ddd;
+        }
+        .timesheet .hour-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: #eee;
+            display: flex;
+            align-items: center;
+        }
+        .timesheet .hour-line span {
+            width: 60px;
+            text-align: right;
+            padding-right: 10px;
+            color: #666;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+        .timesheet .event {
+            position: absolute;
+            left: 70px;
+            width: calc(100% - 80px);
+            background-color: #b22222;
+            color: white;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        .add-button {
+            display: block;
+            margin: 10px auto 0;
+            padding: 10px 20px;
+            background-color: #b22222;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: fit-content;
+        }
+        .add-button:hover {
+            background-color: #8b0000;
+        }
+        #addJobModal, #completeModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+        }
+        .modal-content {
+            background: white;
+            margin: 10% auto; /* Adjusted to 10% for higher position */
+            padding: 20px;
+            width: 60%;
+            border-radius: 5px;
+        }
+        .modal-content label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .modal-content .phongban-input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content .start-hour-input {
+            width: 7%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content .start-min-input {
+            width: 7%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content .start-am-pm-input {
+            width: 7%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content .mo-ta-input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content .end-hour-input {
+            width: 7%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content .end-min-input {
+            width: 7%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content .end-am-pm-input {
+            width: 7%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content .end-mo-ta-input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .modal-content button {
+            padding: 5px 10px;
+            margin-right: 5px;
+            background-color: #b22222;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .modal-content button:hover {
+            background-color: #8b0000;
+        }
+        #jobTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #jobTable th, #jobTable td {
+            border: 1px solid #ccc;
+            padding: 5px;
+        }
+        .tick {
+            color: green;
+            margin-left: 5px;
+        }
+        .time-input {
+            width: 30px; /* Small size for hour/min */
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <div class="logo"></div>
+            <div class="tabs">
+                <a href="#" class="active">Timesheet</a>
+                <a href="#">Info</a>
+                <a href="#">Reports</a>
+            </div>
+        </div>
+        <div class="user-info">
+            <span>Nguyễn Văn A</span>
+            <img src="https://via.placeholder.com/30" alt="User Avatar">
+        </div>
+    </div>
+    <div class="content">
+        <div class="employee-info">
+            <div class="left">
+                <div><strong>Name:</strong> Nguyễn Văn A</div>
+                <div><strong>ID:</strong> 504-551027-16</div>
+            </div>
+            <div class="right">
+                <div><strong>Phòng ban:</strong> Kế toán</div>
+            </div>
+        </div>
+        <div class="timesheet-container">
+            <div class="timesheet" id="timeline">
+                <div class="date-nav">
+                    <div class="date-nav-left">
+                        <button>Today</button>
+                        <span id="currentDateTime">Saturday, October 18, 2025 04:26 PM</span>
+                        <button id="prevDay">&lt;</button>
+                        <button id="nextDay">&gt;</button>
+                    </div>
+                    <div class="date-nav-right">
+                        <button class="active">Day</button>
+                        <button>Week</button>
+                    </div>
+                </div>
+                <div class="hour-line" style="top: 50px;"><span>1:00 AM</span></div>
+                <div class="hour-line" style="top: 100px;"><span>2:00 AM</span></div>
+                <div class="hour-line" style="top: 150px;"><span>3:00 AM</span></div>
+                <div class="hour-line" style="top: 200px;"><span>4:00 AM</span></div>
+                <div class="hour-line" style="top: 250px;"><span>5:00 AM</span></div>
+                <div class="hour-line" style="top: 300px;"><span>6:00 AM</span></div>
+                <div class="hour-line" style="top: 350px;"><span>7:00 AM</span></div>
+                <div class="hour-line" style="top: 400px;"><span>8:00 AM</span></div>
+                <div class="hour-line" style="top: 450px;"><span>9:00 AM</span></div>
+                <div class="hour-line" style="top: 500px;"><span>10:00 AM</span></div>
+                <div class="hour-line" style="top: 550px;"><span>11:00 AM</span></div>
+                <div class="hour-line" style="top: 600px;"><span>12:00 PM</span></div>
+                <div class="hour-line" style="top: 650px;"><span>1:00 PM</span></div>
+                <div class="hour-line" style="top: 700px;"><span>2:00 PM</span></div>
+                <div class="hour-line" style="top: 750px;"><span>3:00 PM</span></div>
+                <div class="hour-line" style="top: 800px;"><span>4:00 PM</span></div>
+                <div class="hour-line" style="top: 850px;"><span>5:00 PM</span></div>
+                <div class="hour-line" style="top: 900px;"><span>6:00 PM</span></div>
+                <div class="hour-line" style="top: 950px;"><span>7:00 PM</span></div>
+                <div class="hour-line" style="top: 1000px;"><span>8:00 PM</span></div>
+                <div class="hour-line" style="top: 1050px;"><span>9:00 PM</span></div>
+                <div class="hour-line" style="top: 1100px;"><span>10:00 PM</span></div>
+                <div class="hour-line" style="top: 1150px;"><span>11:00 PM</span></div>
+                <div class="hour-line" style="top: 1200px;"><span>12:00 AM</span></div>
+            </div>
+        </div>
+        <button class="add-button" id="addButton">Add Job</button>
+        <button id="exportButton" style="display: none; margin: 10px auto; padding: 10px 20px; background-color: #b22222; color: white; border: none; border-radius: 5px; cursor: pointer;">Export Report</button>
+    </div>
+
+    <!-- Add Job Modal -->
+    <div id="addJobModal">
+        <div class="modal-content">
+            <h2>Event</h2>
+            <label for="phongban">Phòng ban</label>
+            <select id="phongban" class="phongban-input" onchange="showJobList()">
+                <option value="">Chọn phòng ban</option>
+                <option value="ke_toan">kế toán</option>
+                <option value="kiem_toan_bc_tc">kiểm toán báo cáo tài chính</option>
+                <option value="kiem_toan_xdcb">kiểm toán XDCB</option>
+                <option value="tham_dinh_gia_tv_thue">Thẩm định giá, tư vấn thuế</option>
+                <option value="khac">khác</option>
+            </select>
+            <div id="jobList" style="display:none;">
+                <table id="jobTable">
+                    <thead>
+                        <tr>
+                            <th>Mã Job Code</th>
+                            <th>Nội dung Task</th>
+                            <th>Chọn</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div id="adminAdd" style="display:none;">
+                    <input id="newCode" placeholder="Mã Code">
+                    <input id="newTask" placeholder="Task">
+                    <button onclick="addJobRow()">Thêm</button>
+                    <button onclick="saveJobs()">Lưu</button>
+                </div>
+            </div>
+            <label>Start</label>
+            <div>
+                <input id="startHour" class="start-hour-input" placeholder="HH" type="number" min="1" max="12" size="2" maxlength="2">
+                :
+                <input id="startMin" class="start-min-input" placeholder="MM" type="number" min="0" max="59" list="minList" size="2" maxlength="2">
+                <datalist id="minList">
+                    <option value="00"></option>
+                    <option value="05"></option>
+                    <option value="10"></option>
+                    <option value="15"></option>
+                    <option value="20"></option>
+                    <option value="25"></option>
+                    <option value="30"></option>
+                    <option value="35"></option>
+                    <option value="40"></option>
+                    <option value="45"></option>
+                    <option value="50"></option>
+                    <option value="55"></option>
+                </datalist>
+                <select id="startAmPm" class="start-am-pm-input">
+                    <option>AM</option>
+                    <option>PM</option>
+                </select>
+            </div>
+            <label>Mô tả</label>
+            <input id="moTa" class="mo-ta-input" maxlength="100">
+            <button onclick="saveJob()">Save</button>
+            <button onclick="cancelModal()">Cancel</button>
+            <button onclick="deleteJob()">Delete</button>
+        </div>
+    </div>
+
+    <!-- Complete Job Modal -->
+    <div id="completeModal">
+        <div class="modal-content">
+            <h2>Hoàn thành Task</h2>
+            <label>End</label>
+            <div>
+                <input id="endHour" class="end-hour-input" placeholder="HH" type="number" min="1" max="12" size="2" maxlength="2">
+                :
+                <input id="endMin" class="end-min-input" placeholder="MM" type="number" min="0" max="59" list="minList" size="2" maxlength="2">
+                <select id="endAmPm" class="end-am-pm-input">
+                    <option>AM</option>
+                    <option>PM</option>
+                </select>
+            </div>
+            <label>Mô tả</label>
+            <input id="endMoTa" class="end-mo-ta-input" maxlength="100">
+            <button onclick="saveComplete()">Save</button>
+            <button onclick="cancelComplete()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Giả lập vai trò (thay đổi thành 'admin' để test add task)
+        let role = 'admin'; // Đổi sang 'admin' để thấy phần add task
+
+        // Lưu trữ jobs theo phòng ban
+        let jobs = JSON.parse(localStorage.getItem('jobs')) || {
+            ke_toan: [],
+            kiem_toan_bc_tc: [],
+            kiem_toan_xdcb: [],
+            tham_dinh_gia_tv_thue: [],
+            khac: []
+        };
+
+        // Task đang chọn
+        let currentTask = JSON.parse(localStorage.getItem('currentTask')) || null;
+
+        // Timer
+        let timerInterval;
+
+        // Validate and clean up currentTask on load
+        if (currentTask && (!currentTask.department || !currentTask.jobIndex || !jobs[currentTask.department] || !jobs[currentTask.department][currentTask.jobIndex])) {
+            currentTask = null;
+            localStorage.removeItem('currentTask');
+        }
+
+        // Current date for navigation
+        let currentDate = new Date();
+
+        // Update date and time dynamically
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+            document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', options).replace(',', '');
+        }
+        setInterval(updateDateTime, 1000); // Update every second
+        updateDateTime(); // Initial call
+
+        // Navigate to previous day
+        document.getElementById('prevDay').onclick = function() {
+            currentDate.setDate(currentDate.getDate() - 1);
+            updateDateTime();
+        };
+
+        // Navigate to next day
+        document.getElementById('nextDay').onclick = function() {
+            currentDate.setDate(currentDate.getDate() + 1);
+            updateDateTime();
+        };
+
+        // Mở modal add job
+        document.getElementById('addButton').onclick = function() {
+            document.getElementById('addJobModal').style.display = 'block';
+            if (currentTask) {
+                document.getElementById('phongban').value = currentTask.department;
+                showJobList();
+                let startDate = new Date(currentTask.startTime);
+                document.getElementById('startHour').value = startDate.getHours() % 12 || 12;
+                document.getElementById('startMin').value = startDate.getMinutes().toString().padStart(2, '0');
+                document.getElementById('startAmPm').value = startDate.getHours() < 12 ? 'AM' : 'PM';
+                document.getElementById('moTa').value = currentTask.moTa;
+            } else {
+                updateTimeSuggestions();
+            }
+        };
+
+        // Hiển thị list job
+        function showJobList() {
+            let dept = document.getElementById('phongban').value;
+            if (dept === 'khac' || dept === '') {
+                document.getElementById('jobList').style.display = 'none';
+                return;
+            }
+            document.getElementById('jobList').style.display = 'block';
+            let tbody = document.getElementById('jobTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+            jobs[dept].forEach((job, index) => {
+                let row = tbody.insertRow();
+                if (role === 'admin') {
+                    row.innerHTML = `
+                        <td><input value="${job.code}"></td>
+                        <td><input value="${job.task}"></td>
+                        <td>
+                            <button onclick="selectTask(${index})">Chọn</button>
+                            <button onclick="deleteTaskRow(${index})">Xóa</button>
+                            ${job.selected ? '<span class="tick">✔</span>' : ''}
+                        </td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td>${job.code}</td>
+                        <td>${job.task}</td>
+                        <td>
+                            <button onclick="selectTask(${index})">Chọn</button>
+                            ${job.selected ? '<span class="tick">✔</span>' : ''}
+                        </td>
+                    `;
+                }
+            });
+            document.getElementById('adminAdd').style.display = role === 'admin' ? 'block' : 'none';
+        }
+
+        // Thêm row job (admin)
+        function addJobRow() {
+            let dept = document.getElementById('phongban').value;
+            let newCode = document.getElementById('newCode').value;
+            let newTask = document.getElementById('newTask').value;
+            if (newCode && newTask) {
+                jobs[dept].push({code: newCode, task: newTask, selected: false, completed: false});
+                showJobList();
+            }
+        }
+
+        // Lưu jobs (admin)
+        function saveJobs() {
+            let dept = document.getElementById('phongban').value;
+            let tbody = document.getElementById('jobTable').getElementsByTagName('tbody')[0];
+            jobs[dept] = [];
+            for (let row of tbody.rows) {
+                let code = role === 'admin' ? row.cells[0].querySelector('input').value : row.cells[0].textContent;
+                let task = role === 'admin' ? row.cells[1].querySelector('input').value : row.cells[1].textContent;
+                jobs[dept].push({code, task, selected: false, completed: false});
+            }
+            localStorage.setItem('jobs', JSON.stringify(jobs));
+        }
+
+        // Xóa row task (admin)
+        function deleteTaskRow(index) {
+            let dept = document.getElementById('phongban').value;
+            jobs[dept].splice(index, 1);
+            showJobList();
+        }
+
+        // Chọn task
+        function selectTask(index) {
+            let dept = document.getElementById('phongban').value;
+            if (currentTask) {
+                alert('Bạn chỉ có thể chọn 1 task!');
+                return;
+            }
+            jobs[dept].forEach((j, i) => j.selected = i === index);
+            currentTask = {department: dept, jobIndex: index, startTime: null, endTime: null, moTa: '', completed: false};
+            showJobList();
+        }
+
+        // Cập nhật gợi ý thời gian
+        function updateTimeSuggestions() {
+            let now = new Date();
+            let currentHour = now.getHours() % 12 || 12;
+            let currentMin = now.getMinutes().toString().padStart(2, '0');
+            let amPm = now.getHours() < 12 ? 'AM' : 'PM';
+            document.getElementById('startHour').value = currentHour;
+            document.getElementById('startMin').value = currentMin;
+            document.getElementById('startAmPm').value = amPm;
+        }
+
+        // Lưu job
+        function saveJob() {
+            if (!currentTask) {
+                alert('Chọn task trước!');
+                return;
+            }
+            let hour = parseInt(document.getElementById('startHour').value);
+            let min = parseInt(document.getElementById('startMin').value);
+            let amPm = document.getElementById('startAmPm').value;
+            if (isNaN(hour) || hour < 1 || hour > 12 || isNaN(min) || min < 0 || min > 59) {
+                alert('Thời gian không hợp lệ!');
+                return;
+            }
+            let startHour24 = amPm === 'AM' ? (hour === 12 ? 0 : hour) : (hour === 12 ? 12 : hour + 12);
+            let startTime = new Date();
+            startTime.setHours(startHour24, min, 0, 0);
+            currentTask.startTime = startTime.getTime();
+            currentTask.moTa = document.getElementById('moTa').value;
+            localStorage.setItem('currentTask', JSON.stringify(currentTask));
+            cancelModal();
+            renderEvent();
+            startTimer();
+        }
+
+        // Hủy modal
+        function cancelModal() {
+            document.getElementById('addJobModal').style.display = 'none';
+            if (currentTask && !currentTask.startTime) {
+                jobs[currentTask.department][currentTask.jobIndex].selected = false;
+                currentTask = null;
+                localStorage.removeItem('currentTask');
+            }
+        }
+
+        // Xóa job
+        function deleteJob() {
+            if (currentTask) {
+                jobs[currentTask.department][currentTask.jobIndex].selected = false;
+                currentTask = null;
+                localStorage.removeItem('currentTask');
+                clearInterval(timerInterval);
+                let eventDiv = document.getElementById('timeline').querySelector('.event');
+                if (eventDiv) eventDiv.remove();
+            }
+            cancelModal();
+        }
+
+        // Render event block
+        function renderEvent() {
+            if (!currentTask || !jobs[currentTask.department] || !jobs[currentTask.department][currentTask.jobIndex]) {
+                return; // Exit if currentTask or job is invalid
+            }
+            let timeline = document.getElementById('timeline');
+            let eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+            eventDiv.innerText = jobs[currentTask.department][currentTask.jobIndex].task;
+            eventDiv.onclick = openCompleteModal;
+            let startHour = new Date(currentTask.startTime).getHours();
+            let top = startHour * 50;
+            eventDiv.style.top = top + 'px';
+            eventDiv.style.height = '0px';
+            timeline.appendChild(eventDiv);
+        }
+
+        // Start timer to expand
+        function startTimer() {
+            timerInterval = setInterval(updateHeight, 300000); // 5 min
+            updateHeight();
+        }
+
+        // Update height
+        function updateHeight() {
+            if (!currentTask || currentTask.completed) return;
+            let now = new Date().getTime();
+            let elevenPM = new Date();
+            elevenPM.setHours(23, 0, 0, 0);
+            if (now > elevenPM.getTime()) {
+                clearInterval(timerInterval);
+                return;
+            }
+            let durationHours = (now - currentTask.startTime) / (3600 * 1000);
+            let height = durationHours * 50;
+            let eventDiv = document.getElementById('timeline').querySelector('.event');
+            if (eventDiv) eventDiv.style.height = height + 'px';
+        }
+
+        // Mở modal complete
+        function openCompleteModal() {
+            let now = new Date();
+            if (now.getHours() >= 23) {
+                alert('Không thể chỉnh sửa sau 23h!');
+                return;
+            }
+            document.getElementById('completeModal').style.display = 'block';
+            let currentHour = now.getHours() % 12 || 12;
+            let currentMin = now.getMinutes().toString().padStart(2, '0');
+            let amPm = now.getHours() < 12 ? 'AM' : 'PM';
+            document.getElementById('endHour').value = currentHour;
+            document.getElementById('endMin').value = currentMin;
+            document.getElementById('endAmPm').value = amPm;
+            document.getElementById('endMoTa').value = '';
+        }
+
+        // Lưu complete
+        function saveComplete() {
+            let hour = parseInt(document.getElementById('endHour').value);
+            let min = parseInt(document.getElementById('endMin').value);
+            let amPm = document.getElementById('endAmPm').value;
+            if (isNaN(hour) || hour < 1 || hour > 12 || isNaN(min) || min < 0 || min > 59) {
+                alert('Thời gian không hợp lệ!');
+                return;
+            }
+            let endHour24 = amPm === 'AM' ? (hour === 12 ? 0 : hour) : (hour === 12 ? 12 : hour + 12);
+            let endTime = new Date();
+            endTime.setHours(endHour24, min, 0, 0);
+            if (endTime.getTime() < currentTask.startTime) {
+                alert('Thời gian kết thúc phải sau bắt đầu!');
+                return;
+            }
+            currentTask.endTime = endTime.getTime();
+            currentTask.endMoTa = document.getElementById('endMoTa').value;
+            currentTask.completed = true;
+            jobs[currentTask.department][currentTask.jobIndex].completed = true;
+            localStorage.setItem('jobs', JSON.stringify(jobs));
+            localStorage.setItem('currentTask', JSON.stringify(currentTask));
+            clearInterval(timerInterval);
+            let duration = (currentTask.endTime - currentTask.startTime) / (3600 * 1000);
+            let height = duration * 50;
+            let eventDiv = document.getElementById('timeline').querySelector('.event');
+            if (eventDiv) eventDiv.style.height = height + 'px';
+            document.getElementById('exportButton').style.display = 'block';
+            cancelComplete();
+        }
+
+        // Hủy complete
+        function cancelComplete() {
+            document.getElementById('completeModal').style.display = 'none';
+        }
+
+        // Export report
+        document.getElementById('exportButton').onclick = function() {
+            let onTime = new Date(currentTask.endTime).getHours() < 23 ? 'Đúng giờ' : 'Trễ';
+            let duration = ((currentTask.endTime - currentTask.startTime) / (3600 * 1000)).toFixed(2) + ' giờ';
+            let data = [
+                ['Mã Job Code', 'Task', 'Người làm', 'Thời gian hoàn thành', 'Thời lượng', 'Tiến độ'],
+                [jobs[currentTask.department][currentTask.jobIndex].code, jobs[currentTask.department][currentTask.jobIndex].task, 'Nguyễn Văn A', new Date(currentTask.endTime).toLocaleString(), duration, onTime]
+            ];
+            let ws = XLSX.utils.aoa_to_sheet(data);
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Report");
+            XLSX.writeFile(wb, 'report.xlsx');
+        };
+
+        // Load initial
+        if (currentTask && currentTask.startTime) {
+            renderEvent();
+            if (!currentTask.completed) {
+                startTimer();
+            } else {
+                let duration = (currentTask.endTime - currentTask.startTime) / (3600 * 1000);
+                let height = duration * 50;
+                let eventDiv = document.getElementById('timeline').querySelector('.event');
+                if (eventDiv) eventDiv.style.height = height + 'px';
+                document.getElementById('exportButton').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

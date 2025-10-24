@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesheet Management Admin</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+        .left-panel {
+            width: 20%;
+            background: linear-gradient(135deg, #ff4d4d, #ff80a3);
+            position: relative;
+            overflow: hidden;
+        }
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            top: -100px;
+            left: -100px;
+        }
+        .left-panel::after {
+            content: '';
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            bottom: -75px;
+            right: -75px;
+        }
+        .right-panel {
+            width: 20%;
+            background: linear-gradient(135deg, #ff4d4d, #ff80a3);
+            position: relative;
+            overflow: hidden;
+        }
+        .right-panel::before {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            top: -100px;
+            right: -100px;
+        }
+        .right-panel::after {
+            content: '';
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            bottom: -75px;
+            left: -75px;
+        }
+        .center-panel {
+            width: 60%;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-radius: 20px;
+        }
+        .admin-container {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+        .admin-container h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: bold;
+        }
+        .admin-container h2 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: bold;
+        }
+        .admin-container input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .admin-container label {
+            display: block;
+            text-align: left;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        .admin-container .create-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .admin-container .create-buttons button {
+            padding: 5px 10px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9em;
+            cursor: pointer;
+            width: 42%;
+        }
+        .admin-container .create-buttons button:hover {
+            background-color: #e60000;
+        }
+    </style>
+</head>
+<body>
+    <div class="left-panel"></div>
+    <div class="center-panel">
+        <div class="admin-container">
+            <h1>TIMESHEET ADMIN LOG IN</h1>
+            <label for="username">Tên người dùng</label>
+            <input type="text" id="username" name="username">
+            <label for="password">Mật mã tài khoản</label>
+            <input type="password" id="password" name="password">
+            <label for="id">ID</label>
+            <input type="text" id="id" name="id">
+            <div class="create-buttons">
+                <button>tài khoản nhân viên</button>
+                <button>tài khoản quản trị viên</button>
+            </div>
+        </div>
+    </div>
+    <div class="right-panel"></div>
+</body>
+</html>
