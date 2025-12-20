@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác thực Quản trị viên</title>
+    <style>
+        /* Basic Authentication Card Styling */
+        body { font-family: 'Segoe UI', Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f0f2f5; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        h2 { color: #b22222; margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #b22222; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #8b0000; }
+        .error { color: red; margin-top: 10px; display: none; font-size: 0.9em; }
+        .back-link { display: block; margin-top: 15px; text-decoration: none; color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>ĐĂNG NHẬP QUẢN TRỊ</h2>
+        <p style="color:#666; font-size:0.9em; margin-bottom:20px">Vui lòng xác minh danh tính để vào trang quản lý tài khoản.</p>
+        
+        <form id="authForm">
+            <input type="text" id="username" placeholder="Tên đăng nhập Admin" required>
+            <input type="password" id="password" placeholder="Mật khẩu" required>
+            <button type="submit">Xác nhận</button>
+        </form>
+        <div id="errorMsg" class="error"></div>
+        <a href="/" class="back-link">← Quay lại trang chủ</a>
+    </div>
+
+    <script>
+        // Handle Admin Authentication Submission
+        document.getElementById('authForm').onsubmit = async (e) => {
+            e.preventDefault(); // Prevent default form reload
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('errorMsg');
+
+            try {
+                // Post credentials to backend
+                const res = await fetch('/api/admin-auth-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Success: Redirect to User Creation Page
+                    window.location.href = '/admin-create'; 
+                } else {
+                    // Error: Display validation message (e.g., Wrong password, User is not Admin)
+                    msg.style.display = 'block';
+                    msg.innerText = data.error;
+                }
+            } catch (err) {
+                msg.style.display = 'block';
+                msg.innerText = "Lỗi kết nối server";
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+node_modules/
+timesheet.db
+.DS_Store
+.env

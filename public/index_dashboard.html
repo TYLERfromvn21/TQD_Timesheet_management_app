@@ -4,728 +4,604 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timesheet Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .header {
-            background-color: #b22222;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .header .logo {
-            width: 40px;
-            height: 40px;
-            background-color: white;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-        .header .tabs {
-            display: flex;
-            gap: 20px;
-        }
-        .header .tabs a {
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        .header .tabs .active {
-            text-decoration: underline;
-        }
-        .header .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .header .user-info img {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background-color: #fff;
-        }
-        .content {
-            padding: 20px;
-            max-height: calc(100vh - 60px);
-            overflow-y: auto;
-        }
-        .employee-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .employee-info .left {
-            flex: 1;
-        }
-        .employee-info .right {
-            flex: 1;
-            text-align: right;
-        }
-        .employee-info div {
-            margin: 5px 0;
-        }
-        .timesheet-container {
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 10px;
-            height: 60vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        .timesheet {
-            position: relative;
-            height: 1200px; /* Enough for 24 hours, assuming 50px per hour */
-        }
-        .timesheet .date-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px; /* Increased margin to avoid overlap */
-        }
-        .timesheet .date-nav-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .timesheet .date-nav-left button {
-            padding: 5px 10px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-        }
-        .timesheet .date-nav-right {
-            display: flex;
-            gap: 10px;
-        }
-        .timesheet .date-nav-right button {
-            padding: 5px 10px;
-            background-color: #f0f0f0;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .timesheet .date-nav-right button.active {
-            background-color: #ddd;
-        }
-        .timesheet .hour-line {
-            position: absolute;
-            width: 100%;
-            height: 1px;
-            background: #eee;
-            display: flex;
-            align-items: center;
-        }
-        .timesheet .hour-line span {
-            width: 60px;
-            text-align: right;
-            padding-right: 10px;
-            color: #666;
-            font-size: 0.9em;
-            white-space: nowrap;
-        }
-        .timesheet .event {
-            position: absolute;
-            left: 70px;
-            width: calc(100% - 80px);
-            background-color: #b22222;
-            color: white;
-            padding: 5px;
-            border-radius: 5px;
-            font-size: 0.9em;
-            cursor: pointer;
-        }
-        .add-button {
-            display: block;
-            margin: 10px auto 0;
-            padding: 10px 20px;
-            background-color: #b22222;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            width: fit-content;
-        }
-        .add-button:hover {
-            background-color: #8b0000;
-        }
-        #addJobModal, #completeModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 200;
-        }
-        .modal-content {
-            background: white;
-            margin: 10% auto; /* Adjusted to 10% for higher position */
-            padding: 20px;
-            width: 60%;
-            border-radius: 5px;
-        }
-        .modal-content label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .modal-content .phongban-input {
-            width: 100%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content .start-hour-input {
-            width: 7%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content .start-min-input {
-            width: 7%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content .start-am-pm-input {
-            width: 7%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content .mo-ta-input {
-            width: 100%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content .end-hour-input {
-            width: 7%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content .end-min-input {
-            width: 7%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content .end-am-pm-input {
-            width: 7%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content .end-mo-ta-input {
-            width: 100%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .modal-content button {
-            padding: 5px 10px;
-            margin-right: 5px;
-            background-color: #b22222;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .modal-content button:hover {
-            background-color: #8b0000;
-        }
-        #jobTable {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #jobTable th, #jobTable td {
-            border: 1px solid #ccc;
-            padding: 5px;
-        }
-        .tick {
-            color: green;
-            margin-left: 5px;
-        }
-        .time-input {
-            width: 30px; /* Small size for hour/min */
+        /* ==========================================================================
+           1. GLOBAL LAYOUT & TYPOGRAPHY
+           ========================================================================== */
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7f6; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* ==========================================================================
+           2. HEADER COMPONENT
+           ========================================================================== */
+        .header { background-color: #b22222; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 50px; box-sizing: border-box; }
+        .header h1 { margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* User Profile Dropdown */
+        .user-menu { cursor: pointer; position: relative; font-weight: bold; font-size: 0.95rem; }
+        .dropdown { display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); min-width: 150px; z-index: 100; }
+        .dropdown button { width: 100%; padding: 10px; text-align: left; background: none; border: none; cursor: pointer; color: #333; }
+        .dropdown button:hover { background: #f0f0f0; }
+
+        /* ==========================================================================
+           3. MAIN LAYOUT CONTAINER
+           ========================================================================== */
+        .container { flex: 1; display: flex; padding: 15px; gap: 15px; overflow: hidden; }
+        
+        /* Left Panel: Timeline & Task Management */
+        .main-panel { flex: 3; background: white; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; }
+        
+        /* Right Panel: Administration Tools (Hidden by default) */
+        .admin-panel { flex: 1; background: white; border-radius: 8px; padding: 15px; display: none; flex-direction: column; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; overflow-y: auto; max-width: 350px; }
+        .admin-panel.show { display: flex; }
+
+        /* ==========================================================================
+           4. TIMELINE VISUALIZATION
+           ========================================================================== */
+        .date-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+        .date-nav h2 { margin: 0; font-size: 1.3rem; color: #333; }
+        .btn-nav { background: #eee; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+
+        /* The scrollable area for time slots */
+        .task-list { flex: 1; overflow-y: auto; border: 1px solid #eee; position: relative; background: #fafafa; border-radius: 4px; }
+        .time-slot { border-bottom: 1px solid #f0f0f0; height: 50px; position: relative; }
+        
+        /* Hint box for today's tasks */
+        .today-tasks-hint { background: #e1f5fe; color: #0277bd; padding: 8px 12px; border-radius: 4px; font-size: 0.85em; margin-bottom: 15px; border-left: 4px solid #039be5; }
+        .action-bar { margin-top: 15px; text-align: center; }
+        .btn-add { background: #b22222; color: white; padding: 12px 40px; border-radius: 30px; border: none; font-size: 16px; cursor: pointer; box-shadow: 0 4px 6px rgba(178, 34, 34, 0.3); font-weight: bold; transition: transform 0.2s; }
+        .btn-add:hover { transform: translateY(-2px); background: #a51b1b; }
+        .btn-add:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; transform: none; }
+
+        /* ==========================================================================
+           5. ADMIN PANEL COMPONENTS
+           ========================================================================== */
+        .admin-panel h3 { margin: 0 0 10px 0; color: #b22222; font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        .report-control { background: #fdfdfd; padding: 12px; border-radius: 6px; border: 1px solid #eee; }
+        .report-control label { font-size: 0.9rem; color: #444; margin-bottom: 8px; display: block; }
+        
+        .admin-input { width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        
+        /* Action Buttons: Unified styling for consistency */
+        .btn-action { 
+            width: 100%; 
+            padding: 10px; 
+            background: #b22222; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 14px; 
+            transition: background 0.2s;
+            display: block; /* Makes <a> behave like a block button */
+            box-sizing: border-box; 
             text-align: center;
+            text-decoration: none;
         }
+        .btn-action:hover { background: #9c1e1e; }
+
+        .job-manage-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .btn-del-job { color: #d32f2f; cursor: pointer; font-weight: 600; border: 1px solid #ffcdd2; padding: 2px 8px; border-radius: 4px; background: #ffebee; font-size: 11px; }
+
+        /* ==========================================================================
+           6. MODALS (Popups)
+           ========================================================================== */
+        .modal, .report-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 500px; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        /* Form Elements inside Modals */
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 600; color: #555; font-size: 0.9rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        
+        .job-list-container { max-height: 150px; overflow-y: auto; border: 1px solid #eee; margin-top: 5px; border-radius: 4px; }
+        .job-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .job-table th { background: #f5f5f5; position: sticky; top: 0; }
+        .job-table th, .job-table td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
+        .job-table tr.selected-row { background-color: #e8f5e9; } 
+
+        /* Report Modal Specifics */
+        .report-box { background: white; padding: 20px; border-radius: 8px; width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+        #rptUserSelect { border: 1px solid #ccc; border-radius: 6px; background-color: #fafafa; font-family: inherit; padding: 5px; outline: none; }
+        #rptUserSelect option { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer; border-radius: 4px; margin-bottom: 2px; }
+        #rptUserSelect option:checked { background-color: #b22222; color: white; }
+        #rptUserSelect option:hover { background-color: #fce4ec; }
+
+        /* ==========================================================================
+           7. FLOATING FEEDBACK BUTTON
+           ========================================================================== */
+        .btn-feedback { position: fixed; bottom: 25px; left: 25px; background: #ff9800; color: white; padding: 12px 25px; border-radius: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 14px; font-weight: bold; text-decoration: none; z-index: 3000; display: flex; align-items: center; gap: 8px; transition: transform 0.2s; border: 2px solid white; }
+        .btn-feedback:hover { transform: translateY(-3px); background: #f57c00; box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <div style="display: flex; align-items: center;">
-            <div class="logo"></div>
-            <div class="tabs">
-                <a href="#" class="active">Timesheet</a>
-                <a href="#">Info</a>
-                <a href="#">Reports</a>
-            </div>
-        </div>
-        <div class="user-info">
-            <span>Nguyễn Văn A</span>
-            <img src="https://via.placeholder.com/30" alt="User Avatar">
-        </div>
-    </div>
-    <div class="content">
-        <div class="employee-info">
-            <div class="left">
-                <div><strong>Name:</strong> Nguyễn Văn A</div>
-                <div><strong>ID:</strong> 504-551027-16</div>
-            </div>
-            <div class="right">
-                <div><strong>Phòng ban:</strong> Kế toán</div>
-            </div>
-        </div>
-        <div class="timesheet-container">
-            <div class="timesheet" id="timeline">
-                <div class="date-nav">
-                    <div class="date-nav-left">
-                        <button>Today</button>
-                        <span id="currentDateTime">Saturday, October 18, 2025 04:26 PM</span>
-                        <button id="prevDay">&lt;</button>
-                        <button id="nextDay">&gt;</button>
-                    </div>
-                    <div class="date-nav-right">
-                        <button class="active">Day</button>
-                        <button>Week</button>
-                    </div>
-                </div>
-                <div class="hour-line" style="top: 50px;"><span>1:00 AM</span></div>
-                <div class="hour-line" style="top: 100px;"><span>2:00 AM</span></div>
-                <div class="hour-line" style="top: 150px;"><span>3:00 AM</span></div>
-                <div class="hour-line" style="top: 200px;"><span>4:00 AM</span></div>
-                <div class="hour-line" style="top: 250px;"><span>5:00 AM</span></div>
-                <div class="hour-line" style="top: 300px;"><span>6:00 AM</span></div>
-                <div class="hour-line" style="top: 350px;"><span>7:00 AM</span></div>
-                <div class="hour-line" style="top: 400px;"><span>8:00 AM</span></div>
-                <div class="hour-line" style="top: 450px;"><span>9:00 AM</span></div>
-                <div class="hour-line" style="top: 500px;"><span>10:00 AM</span></div>
-                <div class="hour-line" style="top: 550px;"><span>11:00 AM</span></div>
-                <div class="hour-line" style="top: 600px;"><span>12:00 PM</span></div>
-                <div class="hour-line" style="top: 650px;"><span>1:00 PM</span></div>
-                <div class="hour-line" style="top: 700px;"><span>2:00 PM</span></div>
-                <div class="hour-line" style="top: 750px;"><span>3:00 PM</span></div>
-                <div class="hour-line" style="top: 800px;"><span>4:00 PM</span></div>
-                <div class="hour-line" style="top: 850px;"><span>5:00 PM</span></div>
-                <div class="hour-line" style="top: 900px;"><span>6:00 PM</span></div>
-                <div class="hour-line" style="top: 950px;"><span>7:00 PM</span></div>
-                <div class="hour-line" style="top: 1000px;"><span>8:00 PM</span></div>
-                <div class="hour-line" style="top: 1050px;"><span>9:00 PM</span></div>
-                <div class="hour-line" style="top: 1100px;"><span>10:00 PM</span></div>
-                <div class="hour-line" style="top: 1150px;"><span>11:00 PM</span></div>
-                <div class="hour-line" style="top: 1200px;"><span>12:00 AM</span></div>
-            </div>
-        </div>
-        <button class="add-button" id="addButton">Add Job</button>
-        <button id="exportButton" style="display: none; margin: 10px auto; padding: 10px 20px; background-color: #b22222; color: white; border: none; border-radius: 5px; cursor: pointer;">Export Report</button>
-    </div>
-
-    <!-- Add Job Modal -->
-    <div id="addJobModal">
-        <div class="modal-content">
-            <h2>Event</h2>
-            <label for="phongban">Phòng ban</label>
-            <select id="phongban" class="phongban-input" onchange="showJobList()">
-                <option value="">Chọn phòng ban</option>
-                <option value="ke_toan">kế toán</option>
-                <option value="kiem_toan_bc_tc">kiểm toán báo cáo tài chính</option>
-                <option value="kiem_toan_xdcb">kiểm toán XDCB</option>
-                <option value="tham_dinh_gia_tv_thue">Thẩm định giá, tư vấn thuế</option>
-                <option value="khac">khác</option>
-            </select>
-            <div id="jobList" style="display:none;">
-                <table id="jobTable">
-                    <thead>
-                        <tr>
-                            <th>Mã Job Code</th>
-                            <th>Nội dung Task</th>
-                            <th>Chọn</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <div id="adminAdd" style="display:none;">
-                    <input id="newCode" placeholder="Mã Code">
-                    <input id="newTask" placeholder="Task">
-                    <button onclick="addJobRow()">Thêm</button>
-                    <button onclick="saveJobs()">Lưu</button>
-                </div>
-            </div>
-            <label>Start</label>
-            <div>
-                <input id="startHour" class="start-hour-input" placeholder="HH" type="number" min="1" max="12" size="2" maxlength="2">
-                :
-                <input id="startMin" class="start-min-input" placeholder="MM" type="number" min="0" max="59" list="minList" size="2" maxlength="2">
-                <datalist id="minList">
-                    <option value="00"></option>
-                    <option value="05"></option>
-                    <option value="10"></option>
-                    <option value="15"></option>
-                    <option value="20"></option>
-                    <option value="25"></option>
-                    <option value="30"></option>
-                    <option value="35"></option>
-                    <option value="40"></option>
-                    <option value="45"></option>
-                    <option value="50"></option>
-                    <option value="55"></option>
-                </datalist>
-                <select id="startAmPm" class="start-am-pm-input">
-                    <option>AM</option>
-                    <option>PM</option>
-                </select>
-            </div>
-            <label>Mô tả</label>
-            <input id="moTa" class="mo-ta-input" maxlength="100">
-            <button onclick="saveJob()">Save</button>
-            <button onclick="cancelModal()">Cancel</button>
-            <button onclick="deleteJob()">Delete</button>
+        <h1>TÍN VIỆT TIMESHEET</h1>
+        <div class="user-menu" onclick="document.getElementById('dropdown').style.display = document.getElementById('dropdown').style.display === 'block' ? 'none' : 'block'">
+            <span id="uName">...</span> <span id="uRole"></span> ▼
+            <div class="dropdown" id="dropdown"><button onclick="location.href='/logout'">Đăng xuất</button></div>
         </div>
     </div>
 
-    <!-- Complete Job Modal -->
-    <div id="completeModal">
+    <a href="https://forms.gle/yxhx5kWoTJXS1VXv7" target="_blank" class="btn-feedback">
+        🐞 Góp ý / Báo lỗi
+    </a>
+
+    <div class="container">
+        <div class="main-panel">
+            <div class="date-nav">
+                <button class="btn-nav" onclick="addDays(-1)">❮ Hôm qua</button>
+                <h2 id="currentDateDisplay">...</h2>
+                <button class="btn-nav" onclick="addDays(1)">Ngày mai ❯</button>
+            </div>
+            <div class="task-list" id="timeline"></div>
+            <div class="action-bar"><button class="btn-add" id="btnAdd" onclick="openModal()">+ Khai báo công việc</button></div>
+        </div>
+
+        <div class="admin-panel" id="adminPanel">
+            <h3>QUẢN TRỊ VIÊN</h3>
+            
+            <div class="report-control">
+                <label><strong>TẠO JOBCODE</strong></label>
+                <select id="newJobDept" class="admin-input" onchange="loadAdminJobList()">
+                    <option value="">Đang tải...</option>
+                </select>
+                <input id="newJobCode" class="admin-input" placeholder="Mã Job (VD: KT_2025)">
+                <input id="newJobDesc" class="admin-input" placeholder="Nội dung Job">
+                <button class="btn-action" onclick="createJobCode()">Tạo Mã Job</button>
+            </div>
+
+            <div class="report-control">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px">
+                    <label style="margin:0"><strong>QUẢN LÝ JOBCODE</strong></label>
+                    <span onclick="loadAdminJobList()" style="cursor:pointer; color:#b22222; font-size:0.8em">🔄 Làm mới</span>
+                </div>
+                <div id="adminJobList" style="height: 120px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius:4px; padding:5px;">
+                    <div style="padding:10px; color:#999; font-size:0.9em; text-align:center">Chọn phòng ban để xem</div>
+                </div>
+            </div>
+
+            <div class="report-control" id="reportSection">
+                <label><strong>XUẤT BÁO CÁO EXCEL</strong></label>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-action" style="background:#2ecc71; flex:1" onclick="openReportModal('USER')">Theo NV</button>
+                    <button class="btn-action" style="background:#3498db; flex:1" onclick="openReportModal('JOB')">Theo Job</button>
+                </div>
+            </div>
+
+            <div class="report-control">
+                <label><strong>QUẢN LÝ HỆ THỐNG</strong></label>
+                <div style="display:flex; flex-direction:column; gap:5px">
+                    <a href="/manage-users" class="btn-action" style="background:#8e44ad">Quản lý Tài khoản</a>
+                    <button id="btnAddDept" class="btn-action" style="background:#f39c12; display:none" onclick="addDepartment()">+ Thêm Phòng Ban</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="taskModal">
         <div class="modal-content">
-            <h2>Hoàn thành Task</h2>
-            <label>End</label>
-            <div>
-                <input id="endHour" class="end-hour-input" placeholder="HH" type="number" min="1" max="12" size="2" maxlength="2">
-                :
-                <input id="endMin" class="end-min-input" placeholder="MM" type="number" min="0" max="59" list="minList" size="2" maxlength="2">
-                <select id="endAmPm" class="end-am-pm-input">
-                    <option>AM</option>
-                    <option>PM</option>
+            <h2 id="modalTitle" style="color:#b22222; margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px">Khai báo công việc</h2>
+            <div id="todayTasksRef" class="today-tasks-hint" style="display:none"></div>
+            
+            <div class="form-group">
+                <label>Phòng ban</label>
+                <select id="selDept" onchange="loadJobCodes()">
+                    <option value="">Đang tải...</option>
                 </select>
             </div>
-            <label>Mô tả</label>
-            <input id="endMoTa" class="end-mo-ta-input" maxlength="100">
-            <button onclick="saveComplete()">Save</button>
-            <button onclick="cancelComplete()">Cancel</button>
+            
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between">
+                    Chọn Job Code 
+                    <span onclick="clearSelectedJob()" style="color:#d32f2f; cursor:pointer; font-weight:normal; font-size:0.85em; text-decoration: underline;">(Nhấn vào đây để bỏ chọn)</span>
+                </label>
+                <div class="job-list-container">
+                    <table class="job-table" id="tableJobs">
+                        <thead><tr><th>Mã</th><th>Nội dung</th><th>Chọn</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="form-group" style="display:flex; gap:15px">
+                <div style="flex:1"><label>Bắt đầu</label><input type="time" id="inpStart"></div>
+                <div style="flex:1"><label>Kết thúc</label><input type="time" id="inpEnd"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Chi tiết công việc</label>
+                <textarea id="inpDesc" rows="2" placeholder="Chi tiết công việc..."></textarea>
+            </div>
+            
+            <div style="text-align:right; margin-top:10px; border-top:1px solid #eee; padding-top:15px">
+                <button onclick="document.getElementById('taskModal').style.display='none'" style="padding:10px 20px; margin-right:5px; border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer">Hủy</button>
+                <button id="btnDelete" onclick="deleteTask()" style="padding:10px 20px; background:#757575; color:white; border:none; display:none; margin-right:5px; border-radius:4px; cursor:pointer">Xóa</button>
+                <button onclick="saveTask()" style="padding:10px 25px; background:#b22222; color:white; border:none; font-weight:bold; border-radius:4px; cursor:pointer">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="report-modal" id="reportModal">
+        <div class="report-box">
+            <h3 id="rptTitle" style="color:#b22222; margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px">Xuất Báo Cáo</h3>
+            
+            <div class="form-group" style="display:flex; gap:15px">
+                <div style="flex:1"><label>Tháng</label><input type="number" id="rptMonth" min="1" max="12" value="12"></div>
+                <div style="flex:1"><label>Năm</label><input type="number" id="rptYear" value="2025"></div>
+            </div>
+            
+            <div id="userSelectGroup" style="display:none">
+                <div class="form-group">
+                    <label>Lọc theo Phòng ban</label>
+                    <select id="rptDeptSelect" onchange="filterReportUsers()">
+                        <option value="all">-- Tất cả --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Chọn Nhân viên</label>
+                    <select id="rptUserSelect" size="5" style="width:100%"></select>
+                </div>
+            </div>
+            
+            <div style="text-align:right; margin-top:20px">
+                <button onclick="document.getElementById('reportModal').style.display='none'" style="padding:8px 15px; border:1px solid #ccc; background:white; border-radius:4px; cursor:pointer">Đóng</button>
+                <button onclick="downloadReport()" style="padding:8px 15px; background:#2ecc71; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; margin-left:5px">⬇ Tải Excel</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Giả lập vai trò (thay đổi thành 'admin' để test add task)
-        let role = 'admin'; // Đổi sang 'admin' để thấy phần add task
+        // --- 1. GLOBAL STATE VARIABLES ---
+        let currentUser = null;         // Stores the logged-in user object
+        let currentDate = new Date();   // Current displayed date in timeline
+        let selectedJob = null;         // Currently selected job code in modal
+        let currentTaskId = null;       // ID of the task being edited (null if new)
+        let currentReportType = 'USER'; // 'USER' or 'JOB' report type
+        let loadedTasks = [];           // Array of tasks fetched for the current day
+        let allUsersForReport = [];     // List of users for the report dropdown
+        let globalDepts = [];           // Cached list of departments
 
-        // Lưu trữ jobs theo phòng ban
-        let jobs = JSON.parse(localStorage.getItem('jobs')) || {
-            ke_toan: [],
-            kiem_toan_bc_tc: [],
-            kiem_toan_xdcb: [],
-            tham_dinh_gia_tv_thue: [],
-            khac: []
-        };
+        // --- 2. INITIALIZATION SEQUENCE ---
+        window.onload = async () => {
+            // Check authentication status
+            const res = await fetch('/user-info');
+            if (res.ok) {
+                currentUser = await res.json();
+                // Update UI with user info
+                document.getElementById('uName').innerText = currentUser.username;
+                document.getElementById('uRole').innerText = `(${currentUser.role})`;
 
-        // Task đang chọn
-        let currentTask = JSON.parse(localStorage.getItem('currentTask')) || null;
+                // Load initial data
+                await loadAllDepartments();
 
-        // Timer
-        let timerInterval;
+                // Role-Based Access Control (RBAC) Logic
+                if (currentUser.role.includes('admin')) {
+                    document.getElementById('adminPanel').classList.add('show');
+                    
+                    if (currentUser.role === 'admin_total') {
+                        // Total Admin: Can add departments
+                        document.getElementById('btnAddDept').style.display = 'block';
+                    } else if (currentUser.role === 'admin_dept') {
+                        // Department Admin: Locked to their own department
+                        const deptSelect = document.getElementById('newJobDept');
+                        deptSelect.value = currentUser.department;
+                        deptSelect.disabled = true; deptSelect.style.background = '#eee';
+                        document.getElementById('reportSection').style.display = 'none'; // Dept admins cannot export reports
+                    }
+                    loadAdminJobList(); 
+                }
 
-        // Validate and clean up currentTask on load
-        if (currentTask && (!currentTask.department || !currentTask.jobIndex || !jobs[currentTask.department] || !jobs[currentTask.department][currentTask.jobIndex])) {
-            currentTask = null;
-            localStorage.removeItem('currentTask');
-        }
-
-        // Current date for navigation
-        let currentDate = new Date();
-
-        // Update date and time dynamically
-        function updateDateTime() {
-            const now = new Date();
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
-            document.getElementById('currentDateTime').textContent = now.toLocaleString('en-US', options).replace(',', '');
-        }
-        setInterval(updateDateTime, 1000); // Update every second
-        updateDateTime(); // Initial call
-
-        // Navigate to previous day
-        document.getElementById('prevDay').onclick = function() {
-            currentDate.setDate(currentDate.getDate() - 1);
-            updateDateTime();
-        };
-
-        // Navigate to next day
-        document.getElementById('nextDay').onclick = function() {
-            currentDate.setDate(currentDate.getDate() + 1);
-            updateDateTime();
-        };
-
-        // Mở modal add job
-        document.getElementById('addButton').onclick = function() {
-            document.getElementById('addJobModal').style.display = 'block';
-            if (currentTask) {
-                document.getElementById('phongban').value = currentTask.department;
-                showJobList();
-                let startDate = new Date(currentTask.startTime);
-                document.getElementById('startHour').value = startDate.getHours() % 12 || 12;
-                document.getElementById('startMin').value = startDate.getMinutes().toString().padStart(2, '0');
-                document.getElementById('startAmPm').value = startDate.getHours() < 12 ? 'AM' : 'PM';
-                document.getElementById('moTa').value = currentTask.moTa;
+                // Pre-select department for regular users
+                if (currentUser.department) {
+                    document.getElementById('selDept').value = currentUser.department;
+                    if (currentUser.role !== 'admin_total') document.getElementById('selDept').disabled = true;
+                }
+                
+                // Render the main timeline
+                renderTimeline();
             } else {
-                updateTimeSuggestions();
+                // Redirect to login if not authenticated
+                window.location.href = '/';
             }
         };
 
-        // Hiển thị list job
-        function showJobList() {
-            let dept = document.getElementById('phongban').value;
-            if (dept === 'khac' || dept === '') {
-                document.getElementById('jobList').style.display = 'none';
-                return;
+        // --- 3. DEPARTMENT MANAGEMENT LOGIC ---
+        
+        /**
+         * Fetches all departments from API and populates globalDepts
+         */
+        async function loadAllDepartments() {
+            try {
+                const res = await fetch('/api/departments');
+                globalDepts = await res.json();
+                fillDeptDropdown('selDept'); 
+                fillDeptDropdown('newJobDept'); 
+                fillDeptDropdown('rptDeptSelect', true); 
+            } catch(e) { console.log("Error loading departments", e); }
+        }
+
+        /**
+         * Fills a <select> element with department options
+         * @param {string} id - HTML ID of the select element
+         * @param {boolean} hasAll - Whether to include an "All" option
+         */
+        function fillDeptDropdown(id, hasAll = false) {
+            const sel = document.getElementById(id);
+            sel.innerHTML = '';
+            if (hasAll) sel.innerHTML += '<option value="all">-- Tất cả --</option>';
+            globalDepts.forEach(d => {
+                sel.innerHTML += `<option value="${d.code}">${d.name}</option>`;
+            });
+        }
+
+        /**
+         * Admin: Adds a new department to the system
+         */
+        async function addDepartment() {
+            const name = prompt("Nhập tên phòng ban mới:");
+            if (name) {
+                const res = await fetch('/api/add-department', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name})
+                });
+                if(res.ok) {
+                    alert("Đã thêm thành công!");
+                    location.reload();
+                } else alert("Lỗi thêm phòng ban!");
             }
-            document.getElementById('jobList').style.display = 'block';
-            let tbody = document.getElementById('jobTable').getElementsByTagName('tbody')[0];
-            tbody.innerHTML = '';
-            jobs[dept].forEach((job, index) => {
-                let row = tbody.insertRow();
-                if (role === 'admin') {
-                    row.innerHTML = `
-                        <td><input value="${job.code}"></td>
-                        <td><input value="${job.task}"></td>
-                        <td>
-                            <button onclick="selectTask(${index})">Chọn</button>
-                            <button onclick="deleteTaskRow(${index})">Xóa</button>
-                            ${job.selected ? '<span class="tick">✔</span>' : ''}
-                        </td>
-                    `;
-                } else {
-                    row.innerHTML = `
-                        <td>${job.code}</td>
-                        <td>${job.task}</td>
-                        <td>
-                            <button onclick="selectTask(${index})">Chọn</button>
-                            ${job.selected ? '<span class="tick">✔</span>' : ''}
-                        </td>
-                    `;
+        }
+
+        // --- 4. TIMELINE LOGIC ---
+
+        /**
+         * Navigates the calendar by d days
+         */
+        function addDays(d) { 
+            currentDate.setDate(currentDate.getDate() + d); 
+            renderTimeline(); 
+        }
+
+        /**
+         * Renders the daily timeline visualization.
+         * Fetches tasks for the currentDate and draws them as blocks on the time grid.
+         */
+        async function renderTimeline() {
+            // Update Date Header
+            document.getElementById('currentDateDisplay').innerText = currentDate.toLocaleDateString('vi-VN', {weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'});
+            
+            const container = document.getElementById('timeline');
+            container.innerHTML = '';
+            
+            // Draw time slots (6:00 to 22:00)
+            for(let i=6; i<=22; i++) container.innerHTML += `<div class="time-slot"><span style="position:absolute;top:-10px;left:5px;font-size:11px;color:#999">${i}:00</span></div>`;
+            
+            // Check Lockout Logic (Cutoff time: 6:00 AM next day)
+            const now = new Date();
+            const deadline = new Date(currentDate); 
+            deadline.setDate(deadline.getDate() + 1); 
+            deadline.setHours(6, 0, 0, 0);
+            document.getElementById('btnAdd').disabled = (now > deadline);
+            
+            // Fetch and render tasks
+            const res = await fetch(`/tasks/${currentDate.toISOString().split('T')[0]}`);
+            loadedTasks = await res.json(); 
+            loadedTasks.forEach(t => {
+                const s = new Date(t.start_time), e = new Date(t.end_time);
+                // Calculate position relative to 6:00 AM
+                const startPos = (s.getHours() - 6) + s.getMinutes()/60;
+                const duration = (e - s) / 3600000; // Duration in hours
+                
+                if(startPos >= 0) {
+                    const div = document.createElement('div');
+                    // Dynamic CSS positioning based on time
+                    div.style.cssText = `position:absolute; left:60px; right:10px; top:${startPos*50}px; height:${duration*50}px; background:#ffebeb; border-left:4px solid #b22222; padding:4px 8px; font-size:12px; cursor:pointer; border-radius:4px; overflow:hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.1);`;
+                    div.innerHTML = `<b>${t.job_code}</b>: ${t.task_description}`;
+                    div.onclick = () => openModal(t);
+                    container.appendChild(div);
                 }
             });
-            document.getElementById('adminAdd').style.display = role === 'admin' ? 'block' : 'none';
         }
 
-        // Thêm row job (admin)
-        function addJobRow() {
-            let dept = document.getElementById('phongban').value;
-            let newCode = document.getElementById('newCode').value;
-            let newTask = document.getElementById('newTask').value;
-            if (newCode && newTask) {
-                jobs[dept].push({code: newCode, task: newTask, selected: false, completed: false});
-                showJobList();
-            }
-        }
+        // --- 5. TASK MODAL LOGIC ---
 
-        // Lưu jobs (admin)
-        function saveJobs() {
-            let dept = document.getElementById('phongban').value;
-            let tbody = document.getElementById('jobTable').getElementsByTagName('tbody')[0];
-            jobs[dept] = [];
-            for (let row of tbody.rows) {
-                let code = role === 'admin' ? row.cells[0].querySelector('input').value : row.cells[0].textContent;
-                let task = role === 'admin' ? row.cells[1].querySelector('input').value : row.cells[1].textContent;
-                jobs[dept].push({code, task, selected: false, completed: false});
-            }
-            localStorage.setItem('jobs', JSON.stringify(jobs));
-        }
-
-        // Xóa row task (admin)
-        function deleteTaskRow(index) {
-            let dept = document.getElementById('phongban').value;
-            jobs[dept].splice(index, 1);
-            showJobList();
-        }
-
-        // Chọn task
-        function selectTask(index) {
-            let dept = document.getElementById('phongban').value;
-            if (currentTask) {
-                alert('Bạn chỉ có thể chọn 1 task!');
+        /**
+         * Opens the modal for adding or editing a task.
+         * Enforces business rules like curfew (23:00 - 06:00 restriction).
+         */
+        function openModal(task = null) {
+            // Rule 1: Check Cutoff Time
+            if (document.getElementById('btnAdd').disabled && !task) return alert("Đã khóa sổ!");
+            
+            // Rule 2: Check Curfew (Restricted Hours)
+            const now = new Date();
+            const currentHour = now.getHours();
+            if (currentUser.role !== 'admin_total' && (currentHour >= 23 || currentHour < 6)) {
+                alert("⚠️ Hệ thống tạm ngưng khai báo từ 23:00 đêm đến 06:00 sáng.\nVui lòng quay lại sau!");
                 return;
             }
-            jobs[dept].forEach((j, i) => j.selected = i === index);
-            currentTask = {department: dept, jobIndex: index, startTime: null, endTime: null, moTa: '', completed: false};
-            showJobList();
-        }
 
-        // Cập nhật gợi ý thời gian
-        function updateTimeSuggestions() {
-            let now = new Date();
-            let currentHour = now.getHours() % 12 || 12;
-            let currentMin = now.getMinutes().toString().padStart(2, '0');
-            let amPm = now.getHours() < 12 ? 'AM' : 'PM';
-            document.getElementById('startHour').value = currentHour;
-            document.getElementById('startMin').value = currentMin;
-            document.getElementById('startAmPm').value = amPm;
-        }
+            document.getElementById('taskModal').style.display = 'flex';
+            loadJobCodes(task ? task.job_code : null);
+            
+            // Show hint about jobs done today
+            const hintBox = document.getElementById('todayTasksRef');
+            if (loadedTasks.length > 0) {
+                hintBox.style.display = 'block';
+                const uniqueJobs = [...new Set(loadedTasks.map(t => t.job_code))];
+                const list = uniqueJobs.map(code => `<b>${code}</b>`).join(', ');
+                hintBox.innerHTML = "ℹ️ Job đã làm hôm nay: " + list;
+            } else hintBox.style.display = 'none';
 
-        // Lưu job
-        function saveJob() {
-            if (!currentTask) {
-                alert('Chọn task trước!');
-                return;
-            }
-            let hour = parseInt(document.getElementById('startHour').value);
-            let min = parseInt(document.getElementById('startMin').value);
-            let amPm = document.getElementById('startAmPm').value;
-            if (isNaN(hour) || hour < 1 || hour > 12 || isNaN(min) || min < 0 || min > 59) {
-                alert('Thời gian không hợp lệ!');
-                return;
-            }
-            let startHour24 = amPm === 'AM' ? (hour === 12 ? 0 : hour) : (hour === 12 ? 12 : hour + 12);
-            let startTime = new Date();
-            startTime.setHours(startHour24, min, 0, 0);
-            currentTask.startTime = startTime.getTime();
-            currentTask.moTa = document.getElementById('moTa').value;
-            localStorage.setItem('currentTask', JSON.stringify(currentTask));
-            cancelModal();
-            renderEvent();
-            startTimer();
-        }
-
-        // Hủy modal
-        function cancelModal() {
-            document.getElementById('addJobModal').style.display = 'none';
-            if (currentTask && !currentTask.startTime) {
-                jobs[currentTask.department][currentTask.jobIndex].selected = false;
-                currentTask = null;
-                localStorage.removeItem('currentTask');
-            }
-        }
-
-        // Xóa job
-        function deleteJob() {
-            if (currentTask) {
-                jobs[currentTask.department][currentTask.jobIndex].selected = false;
-                currentTask = null;
-                localStorage.removeItem('currentTask');
-                clearInterval(timerInterval);
-                let eventDiv = document.getElementById('timeline').querySelector('.event');
-                if (eventDiv) eventDiv.remove();
-            }
-            cancelModal();
-        }
-
-        // Render event block
-        function renderEvent() {
-            if (!currentTask || !jobs[currentTask.department] || !jobs[currentTask.department][currentTask.jobIndex]) {
-                return; // Exit if currentTask or job is invalid
-            }
-            let timeline = document.getElementById('timeline');
-            let eventDiv = document.createElement('div');
-            eventDiv.className = 'event';
-            eventDiv.innerText = jobs[currentTask.department][currentTask.jobIndex].task;
-            eventDiv.onclick = openCompleteModal;
-            let startHour = new Date(currentTask.startTime).getHours();
-            let top = startHour * 50;
-            eventDiv.style.top = top + 'px';
-            eventDiv.style.height = '0px';
-            timeline.appendChild(eventDiv);
-        }
-
-        // Start timer to expand
-        function startTimer() {
-            timerInterval = setInterval(updateHeight, 300000); // 5 min
-            updateHeight();
-        }
-
-        // Update height
-        function updateHeight() {
-            if (!currentTask || currentTask.completed) return;
-            let now = new Date().getTime();
-            let elevenPM = new Date();
-            elevenPM.setHours(23, 0, 0, 0);
-            if (now > elevenPM.getTime()) {
-                clearInterval(timerInterval);
-                return;
-            }
-            let durationHours = (now - currentTask.startTime) / (3600 * 1000);
-            let height = durationHours * 50;
-            let eventDiv = document.getElementById('timeline').querySelector('.event');
-            if (eventDiv) eventDiv.style.height = height + 'px';
-        }
-
-        // Mở modal complete
-        function openCompleteModal() {
-            let now = new Date();
-            if (now.getHours() >= 23) {
-                alert('Không thể chỉnh sửa sau 23h!');
-                return;
-            }
-            document.getElementById('completeModal').style.display = 'block';
-            let currentHour = now.getHours() % 12 || 12;
-            let currentMin = now.getMinutes().toString().padStart(2, '0');
-            let amPm = now.getHours() < 12 ? 'AM' : 'PM';
-            document.getElementById('endHour').value = currentHour;
-            document.getElementById('endMin').value = currentMin;
-            document.getElementById('endAmPm').value = amPm;
-            document.getElementById('endMoTa').value = '';
-        }
-
-        // Lưu complete
-        function saveComplete() {
-            let hour = parseInt(document.getElementById('endHour').value);
-            let min = parseInt(document.getElementById('endMin').value);
-            let amPm = document.getElementById('endAmPm').value;
-            if (isNaN(hour) || hour < 1 || hour > 12 || isNaN(min) || min < 0 || min > 59) {
-                alert('Thời gian không hợp lệ!');
-                return;
-            }
-            let endHour24 = amPm === 'AM' ? (hour === 12 ? 0 : hour) : (hour === 12 ? 12 : hour + 12);
-            let endTime = new Date();
-            endTime.setHours(endHour24, min, 0, 0);
-            if (endTime.getTime() < currentTask.startTime) {
-                alert('Thời gian kết thúc phải sau bắt đầu!');
-                return;
-            }
-            currentTask.endTime = endTime.getTime();
-            currentTask.endMoTa = document.getElementById('endMoTa').value;
-            currentTask.completed = true;
-            jobs[currentTask.department][currentTask.jobIndex].completed = true;
-            localStorage.setItem('jobs', JSON.stringify(jobs));
-            localStorage.setItem('currentTask', JSON.stringify(currentTask));
-            clearInterval(timerInterval);
-            let duration = (currentTask.endTime - currentTask.startTime) / (3600 * 1000);
-            let height = duration * 50;
-            let eventDiv = document.getElementById('timeline').querySelector('.event');
-            if (eventDiv) eventDiv.style.height = height + 'px';
-            document.getElementById('exportButton').style.display = 'block';
-            cancelComplete();
-        }
-
-        // Hủy complete
-        function cancelComplete() {
-            document.getElementById('completeModal').style.display = 'none';
-        }
-
-        // Export report
-        document.getElementById('exportButton').onclick = function() {
-            let onTime = new Date(currentTask.endTime).getHours() < 23 ? 'Đúng giờ' : 'Trễ';
-            let duration = ((currentTask.endTime - currentTask.startTime) / (3600 * 1000)).toFixed(2) + ' giờ';
-            let data = [
-                ['Mã Job Code', 'Task', 'Người làm', 'Thời gian hoàn thành', 'Thời lượng', 'Tiến độ'],
-                [jobs[currentTask.department][currentTask.jobIndex].code, jobs[currentTask.department][currentTask.jobIndex].task, 'Nguyễn Văn A', new Date(currentTask.endTime).toLocaleString(), duration, onTime]
-            ];
-            let ws = XLSX.utils.aoa_to_sheet(data);
-            let wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Report");
-            XLSX.writeFile(wb, 'report.xlsx');
-        };
-
-        // Load initial
-        if (currentTask && currentTask.startTime) {
-            renderEvent();
-            if (!currentTask.completed) {
-                startTimer();
+            // Populate form data
+            if (task) {
+                currentTaskId = task.task_id;
+                document.getElementById('modalTitle').innerText = "Sửa công việc";
+                document.getElementById('btnDelete').style.display = 'inline-block';
+                document.getElementById('inpDesc').value = task.task_description;
+                document.getElementById('inpStart').value = new Date(task.start_time).toTimeString().substr(0,5);
+                document.getElementById('inpEnd').value = new Date(task.end_time).toTimeString().substr(0,5);
             } else {
-                let duration = (currentTask.endTime - currentTask.startTime) / (3600 * 1000);
-                let height = duration * 50;
-                let eventDiv = document.getElementById('timeline').querySelector('.event');
-                if (eventDiv) eventDiv.style.height = height + 'px';
-                document.getElementById('exportButton').style.display = 'block';
+                currentTaskId = null; selectedJob = null;
+                document.getElementById('modalTitle').innerText = "Khai báo mới";
+                document.getElementById('btnDelete').style.display = 'none';
+                document.getElementById('inpDesc').value = '';
+                document.getElementById('inpStart').value = '08:00'; document.getElementById('inpEnd').value = '17:00';
             }
+        }
+
+        /**
+         * Loads job codes for the selected department.
+         */
+        async function loadJobCodes(preSelect = null) {
+            const dept = document.getElementById('selDept').value;
+            if(!dept) return; 
+            const res = await fetch(`/job-codes/${dept}`);
+            const jobs = await res.json();
+            const tbody = document.querySelector('#tableJobs tbody');
+            tbody.innerHTML = '';
+            
+            jobs.forEach(j => {
+                const tr = document.createElement('tr');
+                const isSel = (preSelect === j.job_code) || (selectedJob === j.job_code);
+                if(isSel) { tr.classList.add('selected-row'); selectedJob = j.job_code; }
+                
+                tr.innerHTML = `<td><b>${j.job_code}</b></td><td>${j.task_description}</td><td><button onclick="selectJob('${j.job_code}')" style="cursor:pointer; border:1px solid #ccc; background:#fff; border-radius:3px">${isSel?'✅':'Chọn'}</button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function selectJob(c) { selectedJob = c; loadJobCodes(); }
+        function clearSelectedJob() { selectedJob = null; loadJobCodes(); }
+
+        /**
+         * Saves the task to the backend via POST API.
+         * Validates time ranges before submission.
+         */
+        async function saveTask() {
+            if(!selectedJob) return alert("Chưa chọn Job!");
+            
+            const sV = document.getElementById('inpStart').value.split(':');
+            const eV = document.getElementById('inpEnd').value.split(':');
+            
+            let dS = new Date(currentDate); dS.setHours(sV[0], sV[1]);
+            let dE = new Date(currentDate); dE.setHours(eV[0], eV[1]);
+            
+            if(dS >= dE) return alert("Giờ kết thúc phải lớn hơn bắt đầu");
+            
+            await fetch('/save-task', { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({
+                    task_id: currentTaskId, 
+                    department: document.getElementById('selDept').value,
+                    job_code: selectedJob, 
+                    task_description: document.getElementById('inpDesc').value,
+                    start_time: dS.getTime(), 
+                    end_time: dE.getTime(), 
+                    date: currentDate.toISOString().split('T')[0]
+                })
+            });
+            document.getElementById('taskModal').style.display='none'; 
+            renderTimeline();
+        }
+
+        async function deleteTask() {
+            if(confirm('Xóa task này?')) {
+                await fetch('/delete-task', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({task_id: currentTaskId})});
+                document.getElementById('taskModal').style.display='none'; 
+                renderTimeline();
+            }
+        }
+
+        // --- 6. ADMIN & REPORTING LOGIC ---
+
+        async function createJobCode() {
+            const res = await fetch('/save-job-code', { method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    department: document.getElementById('newJobDept').value,
+                    job_code: document.getElementById('newJobCode').value,
+                    task_description: document.getElementById('newJobDesc').value
+                })});
+            const d = await res.json();
+            alert(res.ok ? d.message : d.error);
+            if(res.ok) { document.getElementById('newJobCode').value=''; document.getElementById('newJobDesc').value=''; loadAdminJobList(); }
+        }
+
+        async function loadAdminJobList() {
+            const dept = document.getElementById('newJobDept').value;
+            if(!dept) return;
+            const res = await fetch(`/job-codes/${dept}`);
+            const jobs = await res.json();
+            const container = document.getElementById('adminJobList');
+            container.innerHTML = '';
+            if(jobs.length === 0) container.innerHTML = '<div style="padding:10px; text-align:center; color:#999">Chưa có Job nào</div>';
+            jobs.forEach(j => {
+                const div = document.createElement('div');
+                div.className = 'job-manage-item';
+                div.innerHTML = `<span><b>${j.job_code}</b> - ${j.task_description}</span> <button class="btn-del-job" onclick="deleteJobCode('${j.job_id}')">🗑</button>`;
+                container.appendChild(div);
+            });
+        }
+
+        async function deleteJobCode(id) {
+            if(confirm("Xóa Job này khỏi danh sách chọn?")) {
+                await fetch('/delete-job-code-def', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({job_id: id})});
+                loadAdminJobList();
+            }
+        }
+
+        async function openReportModal(type) {
+            currentReportType = type;
+            document.getElementById('reportModal').style.display = 'flex';
+            // Show user filter only if User Report is selected
+            document.getElementById('userSelectGroup').style.display = (type === 'USER') ? 'block' : 'none';
+            
+            if(type === 'USER') {
+                const res = await fetch('/admin/all-users');
+                allUsersForReport = await res.json();
+                document.getElementById('rptDeptSelect').value = 'all';
+                filterReportUsers();
+            }
+        }
+
+        /**
+         * Filters the user list in the report modal based on selected department.
+         */
+        function filterReportUsers() {
+            const selectedDept = document.getElementById('rptDeptSelect').value;
+            const sel = document.getElementById('rptUserSelect');
+            sel.innerHTML = '';
+            let filteredUsers = allUsersForReport;
+            if (selectedDept !== 'all') {
+                filteredUsers = allUsersForReport.filter(u => u.department === selectedDept);
+            }
+            if (filteredUsers.length === 0) {
+                // Do nothing
+            } else {
+                filteredUsers.forEach(u => sel.innerHTML += `<option value="${u.id}">${u.username} (${u.role})</option>`);
+            }
+        }
+
+        /**
+         * Triggers report download by redirecting to the backend export URL.
+         */
+        function downloadReport() {
+            const m = document.getElementById('rptMonth').value, y = document.getElementById('rptYear').value;
+            const uid = document.getElementById('rptUserSelect').value;
+            
+            if (currentReportType === 'USER' && !uid) {
+                alert("Vui lòng chọn nhân viên từ danh sách!");
+                return;
+            }
+
+            const url = currentReportType === 'USER' 
+                ? `/export/user-report?userId=${uid}&month=${m}&year=${y}`
+                : `/export/job-report?month=${m}&year=${y}`;
+            window.location.href = url;
         }
     </script>
 </body>

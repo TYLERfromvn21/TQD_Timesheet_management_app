@@ -11,8 +11,11 @@
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
     "express-session": "^1.18.2",
+    "helmet": "^8.1.0",
     "sqlite3": "^5.1.7",
     "uuid": "^13.0.0"
   }
