@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Tài khoản</title>
+    <style>
+        /* ==========================================================================
+           1. LAYOUT & CONTAINER STYLES
+           ========================================================================== */
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #b22222; text-align: center; margin-bottom: 20px; }
+        
+        /* ==========================================================================
+           2. DATA TABLE STYLES
+           ========================================================================== */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background: #b22222; color: white; font-weight: bold; } /* Header background matches brand color */
+        
+        /* ==========================================================================
+           3. BUTTON COMPONENT STYLES
+           ========================================================================== */
+        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; margin-right: 5px; }
+        .btn-edit { background: #3498db; }
+        .btn-del { background: #e74c3c; }
+        
+        /* Navigation Button */
+        .btn-back { 
+            background: #b22222; 
+            display: inline-block; 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            color: white; 
+            border-radius: 4px; 
+            margin-bottom: 15px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .btn-back:hover { background: #8b0000; }
+        
+        /* ==========================================================================
+           4. MODAL & FORM STYLES
+           ========================================================================== */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 350px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" class="btn-back">← Quay lại Dashboard</a>
+        <h1>QUẢN LÝ TÀI KHOẢN</h1>
+        
+        <div id="filterSection" style="display:none; margin-bottom:15px">
+            <label>Lọc theo phòng:</label>
+            <select id="deptFilter" onchange="renderTable()" style="padding:5px">
+                <option value="all">-- Tất cả --</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tên đăng nhập</th>
+                        <th>Vai trò</th>
+                        <th>Phòng ban</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="userTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h3>Cập nhật tài khoản</h3>
+            <input type="hidden" id="editId">
+            <div class="form-group">
+                <label>Tên đăng nhập</label>
+                <input type="text" id="editUsername">
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu mới (Để trống nếu không đổi)</label>
+                <div style="position:relative">
+                    <input type="password" id="editPassword" placeholder="******">
+                    <span onclick="togglePass()" style="position:absolute; right:10px; top:8px; cursor:pointer">👁️</span>
+                </div>
+            </div>
+            <div style="text-align:right">
+                <button onclick="closeModal()" class="btn" style="background:#999">Hủy</button>
+                <button onclick="saveUser()" class="btn" style="background:#2ecc71">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBAL STATE ---
+        let currentUser = null; // Stores the currently logged-in admin's info
+        let allUsers = [];      // Stores the raw list of users fetched from the API
+        
+        /**
+         * Department Lookup Map.
+         * Used to translate technical codes (e.g., 'ke_toan') into display names (e.g., 'Kế toán').
+         * Key: Department Code, Value: Department Name.
+         */
+        let deptMap = {}; 
+
+        /**
+         * Initialization Logic.
+         * 1. Authenticates the user.
+         * 2. Loads department metadata (for mapping names).
+         * 3. Loads the user list.
+         */
+        window.onload = async () => {
+            const res = await fetch('/user-info');
+            if(res.ok) {
+                currentUser = await res.json();
+                
+                // Load departments first to ensure 'deptMap' is ready before rendering the table
+                await loadDepts();
+                
+                loadUsers();
+            } else window.location.href = '/';
+        };
+
+        /**
+         * Fetches all departments and populates the `deptMap` and Filter Dropdown.
+         */
+        async function loadDepts() {
+            try {
+                const res = await fetch('/api/departments');
+                const depts = await res.json();
+                
+                const sel = document.getElementById('deptFilter');
+                
+                depts.forEach(d => {
+                    // 1. Populate the lookup map
+                    deptMap[d.code] = d.name; 
+                    
+                    // 2. Populate the filter dropdown (Only for Total Admins who can see all depts)
+                    if (currentUser.role === 'admin_total') {
+                         sel.innerHTML += `<option value="${d.code}">${d.name}</option>`;
+                    }
+                });
+
+                // Show filter section only for Total Admins
+                if(currentUser.role === 'admin_total') {
+                    document.getElementById('filterSection').style.display = 'block';
+                }
+
+            } catch(e) { console.error(e); }
+        }
+
+        /**
+         * Fetches the list of users from the backend.
+         */
+        async function loadUsers() {
+            const res = await fetch('/api/manage-users');
+            allUsers = await res.json();
+            renderTable();
+        }
+
+        /**
+         * Renders the user table based on current data and selected filters.
+         * Handles mapping of department codes to display names.
+         */
+        function renderTable() {
+            const filter = document.getElementById('deptFilter').value;
+            const tbody = document.getElementById('userTable');
+            tbody.innerHTML = '';
+
+            // Apply Filtering Logic
+            // If filter is 'all' or user is NOT a Total Admin (already filtered by backend), show all.
+            const list = (filter === 'all' || currentUser.role !== 'admin_total') 
+                ? allUsers 
+                : allUsers.filter(u => u.department === filter);
+
+            list.forEach(u => {
+                // Resolve Department Name using deptMap
+                // Fallback to the raw code if name is not found, or '-' if null
+                let deptDisplayName = '-';
+                if (u.department) {
+                    deptDisplayName = deptMap[u.department] ? deptMap[u.department] : u.department;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${u.username}</b></td>
+                    <td>${u.role}</td>
+                    <td>${deptDisplayName}</td> 
+                    <td>
+                        <button class="btn btn-edit" onclick="openEdit('${u.id}', '${u.username}')">Sửa</button>
+                        ${
+                            // Conditionally render Delete button:
+                            // Total Admins cannot be deleted here to prevent system lockout.
+                            u.role !== 'admin_total' 
+                            ? `<button class="btn btn-del" onclick="deleteUser('${u.id}')">Xóa</button>` 
+                            : ''
+                        }
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * Opens the Edit Modal and populates it with user data.
+         * @param {string} id - User ID
+         * @param {string} username - Current Username
+         */
+        function openEdit(id, username) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editUsername').value = username;
+            document.getElementById('editPassword').value = ''; // Clear password field for security
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        /**
+         * Submits updated user data to the backend.
+         * Can update username and/or password.
+         */
+        async function saveUser() {
+            const id = document.getElementById('editId').value;
+            const username = document.getElementById('editUsername').value;
+            const password = document.getElementById('editPassword').value;
+
+            await fetch('/api/update-user', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id, username, password })
+            });
+            closeModal();
+            loadUsers(); // Refresh table
+        }
+
+        /**
+         * Deletes a user account.
+         * Includes a confirmation prompt to prevent accidental deletions.
+         */
+        async function deleteUser(id) {
+            if(confirm('Xóa tài khoản này? (Dữ liệu chấm công cũ vẫn còn)')) {
+                await fetch('/api/delete-user', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ id })
+                });
+                loadUsers(); // Refresh table
+            }
+        }
+
+        // --- UI HELPER FUNCTIONS ---
+
+        function togglePass() {
+            const x = document.getElementById('editPassword');
+            x.type = x.type === 'password' ? 'text' : 'password';
+        }
+        
+        function closeModal() { 
+            document.getElementById('editModal').style.display = 'none'; 
+        }
+    </script>
+</body>
+</html>

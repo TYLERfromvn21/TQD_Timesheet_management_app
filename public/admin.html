@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Tài Khoản</title>
+    <style>
+        /* ==========================================================================
+           1. LAYOUT & FORM STYLING
+           ========================================================================== */
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #ff4d4d 0%, #ff9a9e 100%); }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 400px; }
+        h1 { color: #b22222; text-align: center; margin-bottom: 30px; font-size: 20px; text-transform: uppercase; }
+        
+        /* Form Element Styling */
+        .form-group { margin-bottom: 20px; position: relative; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #b22222; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; transition: background 0.3s; }
+        button:hover { background: #8b0000; }
+        
+        /* Feedback Messages & Utilities */
+        .note { text-align: center; margin-top: 15px; font-size: 0.9em; color: #666; }
+        #message { text-align: center; margin-bottom: 15px; display: none; padding: 10px; border-radius: 5px; }
+        .msg-error { background: #ffe6e6; color: red; }
+        .msg-success { background: #e8f5e9; color: green; }
+        .eye-icon { position: absolute; right: 15px; top: 40px; cursor: pointer; font-size: 1.2em; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1 id="pageTitle">TẠO TÀI KHOẢN</h1>
+        <p id="message"></p>
+        
+        <form action="/create-account" method="POST" onsubmit="return validateForm()">
+            <div class="form-group">
+                <label>Tên đăng nhập</label>
+                <input type="text" name="username" required placeholder="VD: ketoan01">
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <input type="password" name="password" id="regPass" required placeholder="******" style="padding-right: 40px;">
+                <span onclick="togglePass('regPass')" class="eye-icon">👁️</span>
+            </div>
+            
+            <div class="form-group">
+                <label>Loại tài khoản</label>
+                <select id="type" name="type" onchange="toggleDept()"></select>
+            </div>
+
+            <div class="form-group" id="deptGroup">
+                <label>Phòng ban</label>
+                <select name="department" id="department">
+                    <option value="">Đang tải...</option>
+                </select>
+                <input type="hidden" name="hidden_dept" id="hidden_dept">
+            </div>
+
+            <button type="submit">Tạo Tài Khoản</button>
+        </form>
+        
+        <div class="note" id="loginLink" style="display:none">
+            <a href="/" style="color:#b22222; text-decoration:none">Quay lại Đăng nhập</a>
+        </div>
+    </div>
+
+    <script>
+        // --- STATE VARIABLES ---
+        let currentUserRole = ''; // Stores the role of the creator (admin_total/admin_dept)
+        let currentUserDept = ''; // Stores the department of the creator
+
+        /**
+         * Toggles password visibility between text and password type.
+         * @param {string} id - The ID of the password input field.
+         */
+        function togglePass(id) {
+            const x = document.getElementById(id);
+            x.type = (x.type === "password") ? "text" : "password";
+        }
+
+        /**
+         * Initialization Logic (Runs on page load)
+         * 1. Checks for error/success messages in URL params.
+         * 2. Loads the list of departments from API.
+         * 3. Checks system status (Setup Mode vs Normal Mode).
+         * 4. Fetches current user info to configure form permissions.
+         */
+        window.onload = async function() {
+            // Handle URL query parameters for notifications
+            const params = new URLSearchParams(window.location.search);
+            const msgDiv = document.getElementById('message');
+            if(params.get('error')) {
+                msgDiv.className = 'msg-error'; msgDiv.style.display = 'block'; msgDiv.innerText = params.get('error');
+            }
+            if(params.get('message')) {
+                msgDiv.className = 'msg-success'; msgDiv.style.display = 'block'; msgDiv.innerText = params.get('message');
+            }
+
+            // Pre-load departments
+            await loadDepartments();
+
+            try {
+                // Check if the system is in 'First Run' mode (No admins exist)
+                const resStatus = await fetch('/check-system-status');
+                const statusData = await resStatus.json();
+
+                if (statusData.isSetupMode) {
+                    // Scenario: Creating the very first Admin
+                    document.getElementById('pageTitle').innerText = "KHỞI TẠO ADMIN TỔNG";
+                    document.getElementById('type').innerHTML = '<option value="admin_total">Admin Tổng (Quản trị viên)</option>';
+                    toggleDept();
+                    return; // Stop here for setup mode
+                }
+
+                // Scenario: Authenticated Admin creating sub-users
+                document.getElementById('loginLink').style.display = "block";
+                const resUser = await fetch('/user-info');
+                
+                if (resUser.ok) {
+                    const user = await resUser.json();
+                    currentUserRole = user.role;
+                    currentUserDept = user.department;
+                    const typeSel = document.getElementById('type');
+                    
+                    // Configure role options based on creator's permission level
+                    if (user.role === 'admin_total') {
+                        typeSel.innerHTML = `
+                            <option value="admin_dept">Quản lý Phòng ban</option>
+                            <option value="user">Nhân viên</option>
+                            <option value="admin_total">Admin Tổng (Phụ)</option>
+                        `;
+                    } else if (user.role === 'admin_dept') {
+                        typeSel.innerHTML = '<option value="user">Nhân viên</option>';
+                    }
+                    toggleDept(); // Trigger UI update based on default selection
+                } else {
+                    // Redirect to login if not authenticated
+                    window.location.href = '/';
+                }
+
+            } catch (e) { console.error(e); }
+        };
+
+        /**
+         * Fetches department list from Backend API and populates the dropdown.
+         */
+        async function loadDepartments() {
+            try {
+                const res = await fetch('/api/departments');
+                const depts = await res.json();
+                const sel = document.getElementById('department');
+                sel.innerHTML = '<option value="">-- Chọn --</option>';
+                depts.forEach(d => {
+                    sel.innerHTML += `<option value="${d.code}">${d.name}</option>`;
+                });
+            } catch(e) {
+                console.error("Error loading departments", e);
+            }
+        }
+
+        /**
+         * Logic to Hide/Show/Lock the Department selector based on Account Type.
+         * - Admin Total: Department selection hidden (not applicable).
+         * - Admin Dept: Department selection visible but LOCKED to their own department.
+         * - User (created by Total Admin): Department selection visible and editable.
+         */
+        function toggleDept() {
+            const type = document.getElementById('type').value;
+            const deptGroup = document.getElementById('deptGroup');
+            const deptSelect = document.getElementById('department');
+            const hiddenDept = document.getElementById('hidden_dept');
+
+            if (type === 'admin_total') {
+                deptGroup.style.display = 'none';
+                deptSelect.required = false;
+                deptSelect.value = "";
+            } else {
+                deptGroup.style.display = 'block';
+                if (currentUserRole === 'admin_dept') {
+                    // Lock department for Department Admins
+                    deptSelect.value = currentUserDept;
+                    deptSelect.disabled = true; 
+                    hiddenDept.value = currentUserDept; // Send value via hidden input
+                } else {
+                    // Enable selection for Total Admins creating standard users
+                    deptSelect.disabled = false;
+                    deptSelect.required = true;
+                    hiddenDept.value = "";
+                }
+            }
+        }
+
+        /**
+         * Client-side validation before form submission.
+         * Ensures a department is selected for non-admin roles.
+         */
+        function validateForm() {
+            const type = document.getElementById('type').value;
+            if (type !== 'admin_total') {
+                const deptSelect = document.getElementById('department');
+                if (!deptSelect.disabled && deptSelect.value === "") {
+                    alert("Vui lòng chọn phòng ban!");
+                    return false;
+                }
+            }
+            return true;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Tài Khoản</title>
+    <style>
+        /* Layout & Typography */
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #ff4d4d 0%, #ff9a9e 100%); }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 400px; }
+        h1 { color: #b22222; text-align: center; margin-bottom: 30px; font-size: 24px; }
+        
+        /* Form Components */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #b22222; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; transition: background 0.3s; }
+        button:hover { background: #8b0000; }
+        
+        /* Notifications */
+        .note { text-align: center; margin-top: 15px; font-size: 0.9em; color: #666; }
+        #message { text-align: center; margin-bottom: 15px; color: red; display: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1 id="pageTitle">KHỞI TẠO ADMIN TỔNG</h1>
+        <p id="message"></p>
+        
+        <form action="/create-account" method="POST" onsubmit="return validate()">
+            <div class="form-group">
+                <label>Tên đăng nhập</label>
+                <input type="text" name="username" required placeholder="VD: admin">
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <input type="password" name="password" required placeholder="******">
+            </div>
+            
+            <div class="form-group">
+                <label>Loại tài khoản</label>
+                <select id="type" name="type" onchange="toggleDept()">
+                    <option value="admin_total">Admin Tổng (Quản trị viên)</option>
+                    <option value="admin_dept">Quản lý Phòng ban</option>
+                    <option value="user">Nhân viên</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="deptGroup" style="display:none">
+                <label>Phòng ban</label>
+                <select name="department" id="department">
+                    <option value="">-- Chọn --</option>
+                    <option value="ke_toan">Kế toán</option>
+                    <option value="kiem_toan_bc_tc">Kiểm toán Báo cáo Tài chính</option>
+                    <option value="kiem_toan_xdcb">Kiểm toán XDCB</option>
+                    <option value="tham_dinh_gia_tv_thue">Thẩm định giá, Tư vấn thuế</option>
+                    <option value="khac">Khác</option>
+                </select>
+            </div>
+
+            <button type="submit">Tạo Tài Khoản</button>
+        </form>
+        
+        <div class="note" id="loginLink" style="display:none">
+            <a href="/" style="color:#b22222; text-decoration:none">Quay lại Đăng nhập</a>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Initialization Logic
+         * Checks user authentication status to determine the operating mode:
+         * 1. Setup Mode: If authentication fails, assumes system init -> allow Total Admin creation.
+         * 2. Creation Mode: If authenticated, adjusts UI for creating sub-users.
+         */
+        window.onload = function() {
+            fetch('/user-info')
+                .then(res => {
+                    if(res.ok) return res.json();
+                    throw new Error('Chưa đăng nhập');
+                })
+                .then(user => {
+                    // CASE 1: Authenticated (Admin creating users)
+                    document.getElementById('pageTitle').innerText = "TẠO TÀI KHOẢN MỚI";
+                    document.getElementById('loginLink').style.display = "block";
+                    
+                    const typeSelect = document.getElementById('type');
+                    // Logic: Department Admins can only create standard Users
+                    if(user.role === 'admin_dept') {
+                        typeSelect.innerHTML = '<option value="user">Nhân viên</option>';
+                        document.getElementById('deptGroup').style.display = 'block';
+                        document.getElementById('department').value = user.department;
+                        document.getElementById('department').style.pointerEvents = 'none'; // Lock department
+                        document.getElementById('department').style.background = '#eee';
+                    }
+                })
+                .catch(err => {
+                    // CASE 2: Not Authenticated (System First Run)
+                    // Restricts creation to 'Total Admin' only for security
+                    document.getElementById('type').innerHTML = '<option value="admin_total">Admin Tổng (First Run)</option>';
+                });
+
+            // Display URL error messages
+            const params = new URLSearchParams(window.location.search);
+            if(params.get('error')) {
+                document.getElementById('message').style.display = 'block';
+                document.getElementById('message').innerText = params.get('error');
+            }
+        };
+
+        /**
+         * Visibility Toggle
+         * Hides department selection for Total Admin role (as they transcend departments).
+         */
+        function toggleDept() {
+            const type = document.getElementById('type').value;
+            const group = document.getElementById('deptGroup');
+            
+            if (type === 'admin_total') {
+                group.style.display = 'none';
+            } else {
+                group.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
